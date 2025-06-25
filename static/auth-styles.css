@@ -1,0 +1,350 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+}
+
+.left-panel {
+    flex: 1;
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 4rem;
+    color: white;
+    position: relative;
+}
+
+.left-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 30% 70%, rgba(52, 152, 219, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.brand-title {
+    font-size: 3.5rem;
+    font-weight: 300;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    z-index: 1;
+    position: relative;
+}
+
+.brand-subtitle {
+    font-size: 1.25rem;
+    font-weight: 400;
+    opacity: 0.9;
+    z-index: 1;
+    position: relative;
+}
+
+.right-panel {
+    flex: 1;
+    background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 4rem;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.login-title {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.login-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.login-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border: 2px solid #e1e8ed;
+    border-radius: 8px;
+    background: white;
+    color: #333;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.login-btn:hover {
+    border-color: #3498db;
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
+    transform: translateY(-1px);
+}
+
+.login-btn.google {
+    border-color: #db4437;
+}
+
+.login-btn.google:hover {
+    border-color: #c23321;
+    box-shadow: 0 4px 12px rgba(219, 68, 55, 0.15);
+}
+
+.login-btn.github {
+    border-color: #333;
+}
+
+.login-btn.github:hover {
+    border-color: #24292e;
+    box-shadow: 0 4px 12px rgba(36, 41, 46, 0.15);
+}
+
+.login-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.signup-section {
+    text-align: center;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.signup-link {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.signup-link:hover {
+    text-decoration: underline;
+}
+
+.user-info {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.user-info h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.user-info p {
+    color: #666;
+    margin: 0.5rem 0;
+}
+
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+    }
+
+    .left-panel {
+        padding: 2rem;
+        text-align: center;
+    }
+
+    .brand-title {
+        font-size: 2.5rem;
+    }
+
+    .right-panel {
+        padding: 2rem;
+    }
+
+    .login-title {
+        font-size: 1.5rem;
+    }
+}
+
+.login-subtitle {
+    color: #666;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+}
+
+.welcome-back {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.profile-section {
+    flex-shrink: 0;
+}
+
+.profile-picture {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.profile-fallback {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.profile-fallback span {
+    color: white;
+    font-size: 24px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.welcome-text {
+    flex: 1;
+    text-align: left;
+}
+
+.welcome-text h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    color: #1a202c;
+}
+
+.user-name {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.provider-info {
+    margin: 0;
+}
+
+.provider-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    background: #fff;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid #e2e8f0;
+    color: #4a5568;
+}
+
+.provider-badge.google {
+    border-color: #4285f4;
+    color: #4285f4;
+}
+
+.provider-badge.github {
+    border-color: #333;
+    color: #333;
+}
+
+.user-email-google {
+    font-size: 0.9em;
+    color: #272727;
+    margin-bottom: 0.5rem;
+}
+
+.user-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.continue-btn {
+    background: white;
+    color: #333;
+    padding: 14px 24px;
+    border: 2px solid #4285f4;
+    border-radius: 12px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    font-weight: 500;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.continue-btn:hover {
+    background: #4285f4;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(66, 133, 244, 0.3);
+}
+
+.logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 24px;
+    margin-top: 1rem;
+    background: #e74c3c;
+    color: white;
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 500;
+    font-size: 16px;
+    gap: 0.75rem;
+    transition: background 0.2s ease;
+}
+
+.logout-btn:hover {
+    background: #e94837;
+}
+
+.help-text {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.help-text p {
+    font-size: 0.8rem;
+    color: #888;
+    line-height: 1.4;
+}
