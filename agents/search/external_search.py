@@ -4,7 +4,6 @@ import os
 import json
 from typing import List
 from langchain_core.tools import tool
-# CORRECTED: Import from the new, dedicated langchain-tavily package
 from langchain_tavily import TavilySearch
 from bs4 import BeautifulSoup
 import requests
@@ -25,7 +24,6 @@ def external_search(query: str, max_results: int = 5) -> str:
         return json.dumps({"error": "Tavily API key not set in environment variables."})
 
     try:
-        # CORRECTED: Use the new TavilySearch class name
         search_tool = TavilySearch(max_results=max_results)
         results = search_tool.invoke(query)
         return json.dumps(results, indent=2)
@@ -67,7 +65,7 @@ def scrape_content(urls: List[str]) -> str:
                 clean_text = ' '.join(chunk for chunk in chunks if chunk)
                 scraped_results.append({
                     'url': url,
-                    'content': clean_text[:5000] # Limit content length
+                    'content': clean_text[:5000]
                 })
         except Exception as e:
             scraped_results.append({'url': url, 'error': f"Error scraping: {str(e)}"})
