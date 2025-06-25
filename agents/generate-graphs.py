@@ -4,7 +4,6 @@ import os
 import sys
 from pathlib import Path
 
-# This import will raise an error if GOOGLE_API_KEY is not set in your .env file
 import config as app_config
 from main import MainOrchestrator
 
@@ -21,10 +20,8 @@ def generate_graphs():
     
     print(f"Graphs will be saved in the '{output_dir.name}' directory.")
 
-    # We need a config object to initialize the orchestrator
     config = app_config.get_workflow_config()
 
-    # Create the main orchestrator instance
     orchestrator = MainOrchestrator(config)
 
     # Get the compiled graph objects
@@ -41,16 +38,14 @@ def generate_graphs():
     try:
         for name, app in graphs_to_generate.items():
             print(f"Generating '{name}' graph...")
-            
-            # Generate the PNG image as bytes
+
             png_bytes = app.get_graph().draw_mermaid_png()
-            
-            # Define the output path and write the bytes to a file
+
             output_path = output_dir / f"{name}_graph.png"
             with open(output_path, "wb") as f:
                 f.write(png_bytes)
             
-            print(f"✅ Saved '{name}' graph to {output_path}")
+            print(f"Saved '{name}' graph to {output_path}")
 
         print("\nAll graphs saved successfully!")
 

@@ -80,7 +80,7 @@ class DeveloperAgent:
                 errors.append(f"Cannot create file: No target_files specified for task {task.get('id')}")
                 return False
 
-            system_prompt = "You are an expert programmer. Your task is to write the full content for a new file. Return ONLY the raw code or text for the file. Do not include any explanations, comments, or markdown formatting like ```python or ```cpp."
+            system_prompt = "You are an expert programmer. Your task is to write the full content for a new file. Return ONLY the raw code or text for the file. Do NOT include any explanations, comments, or markdown formatting like ```python or ```cpp."
             human_prompt = f"The file should be created based on this description: \"{task.get('description')}\""
             
             for target_file in target_files:

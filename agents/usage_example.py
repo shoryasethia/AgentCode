@@ -7,7 +7,7 @@ from config import get_workflow_config
 
 def simple_example():
     """Simple example of using the workflow"""
-    task = "Create a simple Python calculator with basic operations (add, subtract, multiply, divide)"
+    task = "Create a simple ython calculator with basic operations (add, subtract, multiply, divide)"
     workspace = "./my_project"
 
     Path(workspace).mkdir(exist_ok=True)

@@ -120,7 +120,6 @@ class WorkflowConfig(TypedDict):
     workspace_path: str
     search_config: SearchConfig
     logging_level: str
-    # CORRECTED: Added the missing key to the type definition.
     max_retries: int
 
 
