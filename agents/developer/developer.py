@@ -23,7 +23,7 @@ class DeveloperAgent:
             **state,
             "current_task_index": 0,
             "current_task": atomic_tasks[0],
-            "current_phase": "implementation", # Go straight to implementation
+            "current_phase": "implementation", 
             "task_completion_status": {},
             "retry_count": 0
         }
@@ -80,7 +80,6 @@ class DeveloperAgent:
                 errors.append(f"Cannot create file: No target_files specified for task {task.get('id')}")
                 return False
 
-            # CORRECTED: Use a two-message structure (System + Human) for robust API calls.
             system_prompt = "You are an expert programmer. Your task is to write the full content for a new file. Return ONLY the raw code or text for the file. Do not include any explanations, comments, or markdown formatting like ```python or ```cpp."
             human_prompt = f"The file should be created based on this description: \"{task.get('description')}\""
             

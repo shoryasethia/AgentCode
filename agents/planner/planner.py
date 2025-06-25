@@ -48,9 +48,6 @@ class PlannerAgent:
         response = self.llm.invoke(messages)
         response_content = response.content if isinstance(response.content, str) else str(response.content)
 
-        # --- CORRECTED: More robust JSON parsing ---
-        # This logic cleans the model's output to make it more likely to be valid JSON.
-        # It handles cases where the model wraps the JSON in markdown backticks.
         json_match = re.search(r'```json\s*([\s\S]*?)\s*```', response_content)
         if json_match:
             clean_json_str = json_match.group(1)
@@ -86,7 +83,6 @@ class PlannerAgent:
                     success_criteria="The primary request is satisfied.", priority=1, estimated_complexity=5,
                 )
             ]
-        # --- End of robust parsing ---
 
         return {**state, "atomic_tasks": atomic_tasks}
 
