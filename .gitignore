@@ -28,13 +28,14 @@ wheels/
 *.egg
 
 # Database and instance data
-instance/
+# instance/
 *.db
 *.sqlite
 *.sqlite3
 
-# User workspaces and sessions (generated dynamically)
-workspaces/
+# # User workspaces and sessions (generated dynamically)
+# workspaces/
+workspaces/session_*
 
 # Node.js and frontend
 node_modules/
