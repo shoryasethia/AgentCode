@@ -1,187 +1,221 @@
-from flask import Flask, render_template, redirect, url_for, session, g
-from authlib.integrations.flask_client import OAuth
+"""
+AgentCode Flask Authentication Server
+Handles user authentication with persistent database storage
+"""
+from flask import Flask, jsonify, request, session
+from flask_cors import CORS
 import os
-from dotenv import load_dotenv
-from flask_sqlalchemy import SQLAlchemy
-
-load_dotenv()
+import secrets
+import uuid
+from database import initialize_database
+from logger import set_log_context, clear_log_context, log_info, log_error, log_warning, LogCategory
 
 app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(16))
+CORS(app, supports_credentials=True, origins=["http://localhost:3000", "http://localhost:5173"])
 
-app.secret_key = os.environ.get("SECRET_KEY")
-if not app.secret_key:
-    print("Warning: SECRET_KEY not set in environment variables. Using default key for development purposes.")
-    app.secret_key = "shoryasupersecretkey"
-
-# Database Configuration
-db_url = os.environ.get('DATABASE_URL')
-if not db_url:
-    print("Warning: DATABASE_URL not set in environment variables. Exiting application.")
-    exit(1)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = db_url
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-
-# OAuth Configuration
-oauth = OAuth(app)
-
-google = oauth.register(
-    name='google',
-    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
-    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
-    access_token_url='https://oauth2.googleapis.com/token',
-    authorize_url='https://accounts.google.com/o/oauth2/v2/auth',
-    userinfo_endpoint='https://openidconnect.googleapis.com/v1/userinfo',
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={'scope': 'openid email profile'},
-)
-
-github = oauth.register(
-    name='github',
-    client_id=os.environ.get('GITHUB_CLIENT_ID'),
-    client_secret=os.environ.get('GITHUB_CLIENT_SECRET'),
-    access_token_url='https://github.com/login/oauth/access_token',
-    authorize_url='https://github.com/login/oauth/authorize',
-    api_base_url='https://api.github.com/',
-    client_kwargs={'scope': 'user:email read:user'},
-)
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    provider = db.Column(db.String(50), nullable=False)
-    provider_user_id = db.Column(db.String(200), nullable=False)
-    name = db.Column(db.String(100))
-    email = db.Column(db.String(100), unique=False, nullable=True)
-    picture = db.Column(db.String(200))
-    __table_args__ = (db.UniqueConstraint('provider', 'provider_user_id', name='_provider_user_uc'),)
+# Initialize database
+log_info(LogCategory.SYSTEM, "Initializing AgentCode Database...")
+db_manager = initialize_database()
+log_info(LogCategory.SYSTEM, "Database ready!")
 
 @app.before_request
-def load_logged_in_user():
-    user_id = session.get('user_db_id')
-    if user_id is None:
-        g.user = None
-    else:
-        g.user = db.session.get(User, user_id)
-        if g.user:
-            session['user'] = {
-                'provider': g.user.provider,
-                'name': g.user.name,
-                'email': g.user.email,
-                'picture': g.user.picture
-            }
-        else:
-            session.pop('user_db_id', None)
-            session.pop('user', None)
-            g.user = None
+def before_request():
+    """Set up logging context for each request"""
+    request_id = str(uuid.uuid4())
+    user_id = session.get('user', {}).get('id') if 'user' in session else None
+    username = session.get('user', {}).get('username') if 'user' in session else None
+    set_log_context(request_id=request_id, user_id=user_id, username=username)
+
+@app.after_request  
+def after_request(response):
+    """Clean up logging context after each request"""
+    clear_log_context()
+    return response
 
 @app.route("/")
-def entry_point():
-    return redirect(url_for('auth_page'))
+def home():
+    return jsonify({
+        "status": "AgentCode Authentication Server is running",
+        "version": "1.0.0",
+        "endpoints": ["/auth", "/login", "/logout", "/register", "/health"]
+    })
 
-@app.route("/home")
-def app_home():
-    if not g.user:
-        return redirect(url_for('auth_page'))
-    return render_template("index.html", user_session_data=session.get('user'))
+@app.route("/health")
+def health():
+    return jsonify({"status": "healthy", "database": "connected"})
 
-@app.route("/auth")
-def auth_page():
-    return render_template("auth.html", user_session_data=session.get('user'))
-
-@app.route("/login/<provider_name>")
-def login(provider_name):
-    client = oauth.create_client(provider_name)
-    if not client:
-        app.logger.error(f"Attempted login with invalid provider: {provider_name}")
-        return "Invalid provider", 404
-    redirect_uri = url_for('auth_callback', provider_name=provider_name, _external=True)
-    return client.authorize_redirect(redirect_uri)
-
-@app.route("/auth/callback/<provider_name>")
-def auth_callback(provider_name):
-    client = oauth.create_client(provider_name)
-    if not client:
-        app.logger.error(f"Callback with invalid provider: {provider_name}")
-        return "Invalid provider", 404
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    username = data.get('username', '').strip()
+    password = data.get('password', '')
     
-    user_data = None
-    try:
-        client.authorize_access_token()
-        if provider_name == "google":
-            user_data = client.userinfo()
-        elif provider_name == "github":
-            resp = client.get("user") 
-            resp.raise_for_status()
-            user_data = resp.json()
-    except Exception as e:
-        app.logger.error(f"Error in OAuth callback for {provider_name}: {e}")
-        return redirect(url_for('auth_page'))
-
-    if not user_data:
-        app.logger.error(f"No user_data received from {provider_name}")
-        return redirect(url_for('auth_page'))
-
-    provider_user_id_val = None
-    if provider_name == "google":
-        provider_user_id_val = user_data.get("sub")
-        name = user_data.get("name")
-        email = user_data.get("email")
-        picture = user_data.get("picture")
-    elif provider_name == "github":
-        provider_user_id_val = str(user_data.get("id"))
-        name = user_data.get("name") or user_data.get("login")
-        email = user_data.get("email")
-        picture = user_data.get("avatar_url")
-
-    if not provider_user_id_val:
-        app.logger.error(f"Could not extract provider_user_id for {provider_name}")
-        return redirect(url_for('auth_page'))
-
-    user = User.query.filter_by(provider=provider_name, provider_user_id=provider_user_id_val).first()
+    if not username or not password:
+        log_warning(LogCategory.AUTH, "Login attempt with missing credentials", {
+            'username': username,
+            'has_password': bool(password)
+        })
+        return jsonify({"success": False, "message": "Username and password required"}), 400
+    
+    # Verify user with database
+    user = db_manager.verify_user(username, password)
     if user:
-        user.name = name
-        user.email = email
-        user.picture = picture
-    else:
-        user = User(
-            provider=provider_name,
-            provider_user_id=provider_user_id_val,
-            name=name,
-            email=email,
-            picture=picture
-        )
-        db.session.add(user)
-    
-    try:
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Database commit failed in auth_callback: {e}")
-        return redirect(url_for('auth_page'))
-
-    if user and user.id:
-        session['user_db_id'] = user.id
+        # Get or create current session for user
+        session_id = db_manager.get_or_create_session(user['id'])
+        
         session['user'] = {
-            'provider': user.provider,
-            'name': user.name,
-            'email': user.email,
-            'picture': user.picture
+            "id": user['id'],
+            "username": user['username'],
+            "name": user['name'],
+            "email": user['email']
         }
+        session['session_id'] = session_id
+        
+        # Update log context with user info
+        set_log_context(session_id=session_id, user_id=user['id'], username=user['username'])
+        
+        log_info(LogCategory.AUTH, f"User logged in successfully: {username}", {
+            'user_id': user['id'],
+            'session_id': session_id
+        })
+        
+        return jsonify({
+            "success": True, 
+            "message": "Login successful",
+            "user": session['user'],
+            "session_id": session_id
+        })
     else:
-        app.logger.error(f"User object or user.id invalid after DB operations for {provider_name}")
-        return redirect(url_for('auth_page'))
-    return redirect(url_for('app_home'))
+        log_warning(LogCategory.AUTH, f"Failed login attempt for username: {username}")
+        return jsonify({"success": False, "message": "Invalid credentials"}), 401
 
-@app.route("/logout")
+@app.route("/logout", methods=["POST"])
 def logout():
-    session.pop('user_db_id', None) 
-    session.pop('user', None)       
-    g.user = None                 
-    return redirect(url_for('auth_page')) # After logout, send to auth page
+    username = session.get('user', {}).get('username', 'unknown')
+    session_id = session.get('session_id')
+    
+    log_info(LogCategory.AUTH, f"User logged out: {username}", {
+        'session_id': session_id
+    })
+    
+    session.pop('user', None)
+    session.pop('session_id', None)
+    return jsonify({"success": True, "message": "Logged out successfully"})
+
+@app.route("/register", methods=["POST"])
+def register():
+    data = request.get_json()
+    username = data.get('username', '').strip()
+    password = data.get('password', '')
+    name = data.get('name', '').strip()
+    email = data.get('email', '').strip()
+    
+    if not all([username, password, name, email]):
+        log_warning(LogCategory.AUTH, "Registration attempt with missing fields", {
+            'username': username,
+            'email': email,
+            'name': name,
+            'has_password': bool(password)
+        })
+        return jsonify({"success": False, "message": "All fields required"}), 400
+    
+    # Create user in database with duplicate prevention
+    success, message = db_manager.create_user(username, password, name, email)
+    
+    if success:
+        # Automatically log in the new user
+        user = db_manager.get_user_by_username(username)
+        if user:
+            # Create session for the new user
+            session_id = db_manager.get_or_create_session(user['id'])
+            
+            session['user'] = {
+                "id": user['id'],
+                "username": user['username'],
+                "name": user['name'],
+                "email": user['email']
+            }
+            session['session_id'] = session_id
+            
+            return jsonify({
+                "success": True, 
+                "message": "Registration successful! You are now logged in.",
+                "user": session['user'],
+                "session_id": session_id
+            })
+        else:
+            log_error(LogCategory.AUTH, "Failed to retrieve user after registration", {
+                'username': username
+            })
+            return jsonify({"success": True, "message": "Registration successful, please login"})
+    else:
+        return jsonify({"success": False, "message": message}), 400
+
+@app.route("/sessions", methods=["GET"])
+def get_sessions():
+    user = session.get('user')
+    if not user:
+        return jsonify({"success": False, "message": "Not authenticated"}), 401
+    
+    user_sessions = db_manager.get_user_sessions(user['id'])
+    current_session = db_manager.get_current_session(user['id'])
+    
+    return jsonify({
+        "success": True,
+        "sessions": user_sessions,
+        "current_session": current_session
+    })
+
+@app.route("/sessions/new", methods=["POST"])
+def create_new_session():
+    user = session.get('user')
+    if not user:
+        return jsonify({"success": False, "message": "Not authenticated"}), 401
+    
+    data = request.get_json()
+    session_name = data.get('session_name') if data else None
+    
+    new_session_id = db_manager.create_session(user['id'], session_name)
+    session['session_id'] = new_session_id
+    
+    return jsonify({
+        "success": True,
+        "session_id": new_session_id,
+        "message": "New session created"
+    })
+
+@app.route("/sessions/<session_id>/activate", methods=["POST"])
+def activate_session(session_id):
+    user = session.get('user')
+    if not user:
+        return jsonify({"success": False, "message": "Not authenticated"}), 401
+    
+    if db_manager.set_current_session(user['id'], session_id):
+        session['session_id'] = session_id
+        return jsonify({"success": True, "message": "Session activated"})
+    else:
+        return jsonify({"success": False, "message": "Session not found"}), 404
+
+@app.route("/auth", methods=["GET"])
+def check_auth():
+    user = session.get('user')
+    if user:
+        # Get current session
+        current_session = db_manager.get_current_session(user['id'])
+        session_id = current_session['id'] if current_session else db_manager.get_or_create_session(user['id'])
+        session['session_id'] = session_id
+        
+        return jsonify({
+            "authenticated": True, 
+            "user": user,
+            "session_id": session_id
+        })
+    return jsonify({"authenticated": False})
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-    
-    app.run(debug=True, port=5000, host="0.0.0.0")
+    port = int(os.environ.get('FLASK_PORT', 5000))
+    print(f"🌟 Starting AgentCode Authentication Server on port {port}")
+    print(f"🔗 Server URL: http://localhost:{port}")
+    print("💡 Register new users via the application interface")
+    app.run(host="0.0.0.0", port=port, debug=True)
